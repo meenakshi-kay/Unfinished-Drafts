@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unfinished Drafts</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <span class="drawer-label">Special Collections &middot; Est. 2026</span>
+  <h1 class="site-title">Unfinished Drafts</h1>
+  <p class="site-tagline">Half-formed thoughts, filed before they were ready. The Wikipedia rabbit hole series lives in here too.</p>
+
+  <nav class="top-nav">
+    <a href="index.html" class="active">The Drawer</a>
+    <a href="write.html">Write an Entry</a>
+  </nav>
+
+  <div class="drawer" id="drawer"></div>
+
+  <div class="empty-state" id="empty-state" style="display:none;">
+    <h2>The drawer's empty.</h2>
+    <p>Hit "Random article" on Wikipedia, read whatever comes up, and write down the first thing it makes you think of. That's the whole assignment.</p>
+    <a class="btn btn-primary" href="write.html">File your first entry</a>
+  </div>
+
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

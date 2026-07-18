@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Write an entry — Unfinished Drafts</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <span class="drawer-label">Special Collections &middot; Est. 2026</span>
+  <h1 class="site-title">Unfinished Drafts</h1>
+
+  <nav class="top-nav">
+    <a href="index.html">The Drawer</a>
+    <a href="write.html" class="active">Write an Entry</a>
+  </nav>
+
+  <div class="gate" id="write-gate">
+    <p class="prompt-line" style="margin-bottom:14px;">This page is locked</p>
+    <input type="password" id="gate-input" class="gate-input" placeholder="Enter the passcode">
+    <button type="button" class="btn btn-primary" id="gate-btn" style="margin-top:14px;">Unlock</button>
+    <p class="gate-error" id="gate-error"></p>
+  </div>
+
+  <div class="notebook" id="notebook-wrap" style="display:none;">
+    <div class="notebook-top">
+      <div style="flex:1;">
+        <div class="prompt-line" id="prompt-line">Loading a prompt&hellip;</div>
+        <input type="text" id="title-input" class="title-input" placeholder="What's the article called?">
+      </div>
+      <div class="stamp" id="stamp">Draft</div>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" data-cmd="bold"><b>B</b></button>
+      <button type="button" data-cmd="italic"><i>I</i></button>
+      <button type="button" data-cmd="formatBlock" data-value="H2">Heading</button>
+      <button type="button" data-cmd="formatBlock" data-value="BLOCKQUOTE">Quote</button>
+      <button type="button" data-cmd="insertUnorderedList">List</button>
+      <button type="button" data-cmd="removeFormat">Clear</button>
+    </div>
+
+    <div class="editor" id="editor" contenteditable="true"
+         data-placeholder="Start typing. Don't worry about how it sounds yet — say what the article made you think of."></div>
+
+    <div class="notebook-footer">
+      <span class="word-count" id="word-count">0 words</span>
+      <button class="btn btn-primary" id="publish-btn">File this entry</button>
+    </div>
+    <div class="encourage" id="encourage"></div>
+  </div>
+
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
