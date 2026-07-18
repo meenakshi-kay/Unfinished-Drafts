@@ -202,7 +202,6 @@ const ENCOURAGEMENTS = [
   "this is shaping up.",
   "good, don't stop to fix it yet.",
   "the tangent is allowed. lean into it.",
-  "this is more than most people write in a week."
 ];
 
 function initEditor() {
