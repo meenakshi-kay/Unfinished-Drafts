@@ -283,7 +283,7 @@ function initEditor() {
       console.error('Could not publish', e);
       publishBtn.disabled = false;
       publishBtn.textContent = 'File this entry';
-      alert("Couldn't file this entry -- check your Firebase setup in firebase-config.js.");
+      alert("Couldn't file this entry. Check your Firebase setup in firebase-config.js.");
     }
   });
 }
