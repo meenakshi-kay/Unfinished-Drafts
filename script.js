@@ -168,11 +168,9 @@ function initWriteGate() {
 
 // ---------- editor ----------
 const PROMPTS = [
-  "What's the first sentence of the article that snagged you?",
   "What tangent did this send you down?",
   "Would you have believed this fact a week ago?",
   "Who would you tell about this, and why them?",
-  "What does this have nothing to do with, that you're about to connect it to anyway?"
 ];
 
 const ENCOURAGEMENTS = [
@@ -181,7 +179,6 @@ const ENCOURAGEMENTS = [
   "this is shaping up.",
   "good, don't stop to fix it yet.",
   "the tangent is allowed. lean into it.",
-  "this is more than most people write in a week."
 ];
 
 function initEditor() {
@@ -263,7 +260,7 @@ function initEditor() {
       console.error('Could not publish', e);
       publishBtn.disabled = false;
       publishBtn.textContent = 'File this entry';
-      alert("Couldn't file this entry -- check your Firebase setup in firebase-config.js.");
+      alert("Couldn't file this entry. Check your Firebase setup in firebase-config.js.");
     }
   });
 }
