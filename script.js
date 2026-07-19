@@ -453,7 +453,7 @@ async function initEditor() {
       console.error('Could not save', e);
       actionBtn.disabled = false;
       actionBtn.textContent = editingPostId ? 'Save changes' : 'File this entry';
-      alert("Couldn't save this entry -- check your Firebase setup in firebase-config.js.");
+      alert("Couldn't save this entry. Check your Firebase setup in firebase-config.js.");
     }
   });
 }
