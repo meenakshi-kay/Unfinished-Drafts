@@ -1,12 +1,3 @@
-function isOwner() {
-  return localStorage.getItem('drafts-owner') === 'yes';
-}
-
-function applyOwnerUI() {
-  const link = document.getElementById('write-nav-link');
-  if (link) link.style.display = isOwner() ? 'inline-block' : 'none';
-}
-
 // ---------- storage (Firestore) ----------
 // db and WRITE_PASSCODE come from firebase-config.js, loaded before this file.
 
@@ -73,11 +64,8 @@ async function renderDrawer() {
     card.href = `post.html?id=${post.id}`;
     card.className = 'card';
     card.style.setProperty('--tilt', `${tilt}deg`);
-    const deleteBtn = isOwner()
-      ? `<button type="button" class="card-delete" data-id="${post.id}" title="Delete entry" aria-label="Delete entry">&times;</button>`
-      : '';
     card.innerHTML = `
-      ${deleteBtn}
+      <button type="button" class="card-delete" data-id="${post.id}" title="Delete entry" aria-label="Delete entry">&times;</button>
       <div class="call-number">Entry No. ${String(posts.length - i).padStart(3, '0')}</div>
       <h3>${escapeHtml(post.title)}</h3>
       <p class="excerpt">${escapeHtml(post.excerpt)}</p>
@@ -86,19 +74,17 @@ async function renderDrawer() {
     drawer.appendChild(card);
   });
 
-  if (isOwner()) {
-    drawer.querySelectorAll('.card-delete').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const id = btn.getAttribute('data-id');
-        if (confirm('Delete this entry for good? There\'s no undo.')) {
-          await deletePost(id);
-          renderDrawer();
-        }
-      });
+  drawer.querySelectorAll('.card-delete').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      if (confirm('Delete this entry for good? There\'s no undo.')) {
+        await deletePost(id);
+        renderDrawer();
+      }
     });
-  }
+  });
 }
 
 // ---------- post view ----------
@@ -128,28 +114,22 @@ async function renderPostView() {
     return;
   }
 
-  const deleteBtn = isOwner()
-    ? `<button class="btn btn-ghost" id="delete-post">Delete entry</button>`
-    : '';
-
   container.innerHTML = `
     <p class="post-meta">Entry filed ${formatDate(post.createdAt)}</p>
     <h1>${escapeHtml(post.title)}</h1>
     <div class="post-body">${post.content}</div>
     <div style="margin-top:34px; display:flex; gap:12px;">
       <a href="index.html" class="btn btn-ghost">Back to the drawer</a>
-      ${deleteBtn}
+      <button class="btn btn-ghost" id="delete-post">Delete entry</button>
     </div>
   `;
 
-  if (isOwner()) {
-    document.getElementById('delete-post').addEventListener('click', async () => {
-      if (confirm('Delete this entry for good? There\'s no undo.')) {
-        await deletePost(id);
-        window.location.href = 'index.html';
-      }
-    });
-  }
+  document.getElementById('delete-post').addEventListener('click', async () => {
+    if (confirm('Delete this entry for good? There\'s no undo.')) {
+      await deletePost(id);
+      window.location.href = 'index.html';
+    }
+  });
 }
 
 // ---------- write page passcode gate ----------
@@ -158,7 +138,7 @@ function initWriteGate() {
   const notebookWrap = document.getElementById('notebook-wrap');
   if (!gate || !notebookWrap) return;
 
-  if (isOwner()) {
+  if (sessionStorage.getItem('drafts-unlocked') === 'yes') {
     gate.style.display = 'none';
     notebookWrap.style.display = 'block';
     initEditor();
@@ -171,10 +151,9 @@ function initWriteGate() {
 
   function tryUnlock() {
     if (input.value === WRITE_PASSCODE) {
-      localStorage.setItem('drafts-owner', 'yes');
+      sessionStorage.setItem('drafts-unlocked', 'yes');
       gate.style.display = 'none';
       notebookWrap.style.display = 'block';
-      applyOwnerUI();
       initEditor();
     } else {
       error.textContent = "That's not it. Try again.";
@@ -202,6 +181,7 @@ const ENCOURAGEMENTS = [
   "this is shaping up.",
   "good, don't stop to fix it yet.",
   "the tangent is allowed. lean into it.",
+  "this is more than most people write in a week."
 ];
 
 function initEditor() {
@@ -283,13 +263,12 @@ function initEditor() {
       console.error('Could not publish', e);
       publishBtn.disabled = false;
       publishBtn.textContent = 'File this entry';
-      alert("Couldn't file this entry. Check your Firebase setup in firebase-config.js.");
+      alert("Couldn't file this entry -- check your Firebase setup in firebase-config.js.");
     }
   });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  applyOwnerUI();
   renderDrawer();
   renderPostView();
   initWriteGate();
