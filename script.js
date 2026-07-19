@@ -1,6 +1,17 @@
 // ---------- storage (Firestore) ----------
 // db and WRITE_PASSCODE come from firebase-config.js, loaded before this file.
 
+function isOwner() {
+  return localStorage.getItem('drafts-owner') === 'yes';
+}
+
+function applyOwnerUI() {
+  const writeLink = document.getElementById('write-nav-link');
+  const inboxLink = document.getElementById('inbox-nav-link');
+  if (writeLink) writeLink.style.display = isOwner() ? 'inline-block' : 'none';
+  if (inboxLink) inboxLink.style.display = isOwner() ? 'inline-block' : 'none';
+}
+
 async function getPosts() {
   try {
     const snapshot = await db.collection('posts').orderBy('createdAt', 'desc').get();
@@ -11,13 +22,45 @@ async function getPosts() {
   }
 }
 
+async function getPostById(id) {
+  try {
+    const doc = await db.collection('posts').doc(id).get();
+    return doc.exists ? { id: doc.id, ...doc.data() } : null;
+  } catch (e) {
+    console.error('Could not load entry', e);
+    return null;
+  }
+}
+
 async function addPost(post) {
   const docRef = await db.collection('posts').add(post);
   return docRef.id;
 }
 
+async function updatePost(id, data) {
+  await db.collection('posts').doc(id).update(data);
+}
+
 async function deletePost(id) {
   await db.collection('posts').doc(id).delete();
+}
+
+async function getSubmissions() {
+  try {
+    const snapshot = await db.collection('submissions').orderBy('submittedAt', 'desc').get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+    console.error('Could not load submissions', e);
+    return [];
+  }
+}
+
+async function addSubmission(sub) {
+  await db.collection('submissions').add(sub);
+}
+
+async function deleteSubmission(id) {
+  await db.collection('submissions').doc(id).delete();
 }
 
 function excerptFromHtml(html, maxLen = 160) {
@@ -64,27 +107,41 @@ async function renderDrawer() {
     card.href = `post.html?id=${post.id}`;
     card.className = 'card';
     card.style.setProperty('--tilt', `${tilt}deg`);
+
+    const deleteBtn = isOwner()
+      ? `<button type="button" class="card-delete" data-id="${post.id}" title="Delete entry" aria-label="Delete entry">&times;</button>`
+      : '';
+    const authorLine = post.author
+      ? `<p class="card-author">by ${escapeHtml(post.author)}</p>`
+      : '';
+    const previewText = post.description && post.description.trim()
+      ? post.description
+      : post.excerpt;
+
     card.innerHTML = `
-      <button type="button" class="card-delete" data-id="${post.id}" title="Delete entry" aria-label="Delete entry">&times;</button>
+      ${deleteBtn}
       <div class="call-number">Entry No. ${String(posts.length - i).padStart(3, '0')}</div>
       <h3>${escapeHtml(post.title)}</h3>
-      <p class="excerpt">${escapeHtml(post.excerpt)}</p>
+      ${authorLine}
+      <p class="excerpt">${escapeHtml(previewText)}</p>
       <div class="stamp-mini">Filed ${formatDate(post.createdAt)}</div>
     `;
     drawer.appendChild(card);
   });
 
-  drawer.querySelectorAll('.card-delete').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const id = btn.getAttribute('data-id');
-      if (confirm('Delete this entry for good? There\'s no undo.')) {
-        await deletePost(id);
-        renderDrawer();
-      }
+  if (isOwner()) {
+    drawer.querySelectorAll('.card-delete').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        if (confirm('Delete this entry for good? There\'s no undo.')) {
+          await deletePost(id);
+          renderDrawer();
+        }
+      });
     });
-  });
+  }
 }
 
 // ---------- post view ----------
@@ -96,52 +153,70 @@ async function renderPostView() {
 
   container.innerHTML = '<p class="post-meta">Loading&hellip;</p>';
 
-  let post = null;
-  try {
-    const doc = await db.collection('posts').doc(id).get();
-    if (doc.exists) post = { id: doc.id, ...doc.data() };
-  } catch (e) {
-    console.error('Could not load entry', e);
-  }
+  const post = await getPostById(id);
 
   if (!post) {
     container.innerHTML = `
       <p class="post-meta">Not in the catalog</p>
       <h1>This entry wandered off</h1>
       <p style="margin-top:16px;">Nothing's filed under that number. It may have been deleted, or the link's off.</p>
-      <a href="index.html" class="btn btn-ghost" style="margin-top:20px;">Back to the drawer</a>
+      <a href="index.html" class="btn btn-outline-ink" style="margin-top:20px;">Back to the drawer</a>
     `;
     return;
   }
 
+  const authorLine = post.author
+    ? `<p class="post-author">by ${escapeHtml(post.author)}</p>`
+    : '';
+  const editBtn = isOwner()
+    ? `<a href="write.html?id=${post.id}" class="btn btn-outline-ink">Edit</a>`
+    : '';
+  const deleteBtn = isOwner()
+    ? `<button class="btn btn-outline-danger" id="delete-post">Delete entry</button>`
+    : '';
+
   container.innerHTML = `
     <p class="post-meta">Entry filed ${formatDate(post.createdAt)}</p>
     <h1>${escapeHtml(post.title)}</h1>
+    ${authorLine}
     <div class="post-body">${post.content}</div>
-    <div style="margin-top:34px; display:flex; gap:12px;">
-      <a href="index.html" class="btn btn-ghost">Back to the drawer</a>
-      <button class="btn btn-ghost" id="delete-post">Delete entry</button>
+    <div style="margin-top:34px; display:flex; gap:12px; flex-wrap:wrap;">
+      <a href="index.html" class="btn btn-outline-ink">Back to the drawer</a>
+      ${editBtn}
+      ${deleteBtn}
     </div>
   `;
 
-  document.getElementById('delete-post').addEventListener('click', async () => {
-    if (confirm('Delete this entry for good? There\'s no undo.')) {
-      await deletePost(id);
-      window.location.href = 'index.html';
+  if (isOwner()) {
+    const delBtn = document.getElementById('delete-post');
+    if (delBtn) {
+      delBtn.addEventListener('click', async () => {
+        if (confirm('Delete this entry for good? There\'s no undo.')) {
+          await deletePost(id);
+          window.location.href = 'index.html';
+        }
+      });
     }
-  });
+  }
 }
 
-// ---------- write page passcode gate ----------
+// ---------- passcode gate (shared by write.html and inbox.html) ----------
 function initWriteGate() {
   const gate = document.getElementById('write-gate');
-  const notebookWrap = document.getElementById('notebook-wrap');
-  if (!gate || !notebookWrap) return;
+  if (!gate) return;
 
-  if (sessionStorage.getItem('drafts-unlocked') === 'yes') {
+  const notebookWrap = document.getElementById('notebook-wrap');
+  const inboxList = document.getElementById('inbox-list');
+
+  function reveal() {
     gate.style.display = 'none';
-    notebookWrap.style.display = 'block';
-    initEditor();
+    applyOwnerUI();
+    if (notebookWrap) { notebookWrap.style.display = 'block'; initEditor(); }
+    if (inboxList) { inboxList.style.display = 'block'; loadInbox(); }
+  }
+
+  if (isOwner()) {
+    reveal();
     return;
   }
 
@@ -151,10 +226,8 @@ function initWriteGate() {
 
   function tryUnlock() {
     if (input.value === WRITE_PASSCODE) {
-      sessionStorage.setItem('drafts-unlocked', 'yes');
-      gate.style.display = 'none';
-      notebookWrap.style.display = 'block';
-      initEditor();
+      localStorage.setItem('drafts-owner', 'yes');
+      reveal();
     } else {
       error.textContent = "That's not it. Try again.";
       input.value = '';
@@ -166,11 +239,72 @@ function initWriteGate() {
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUnlock(); });
 }
 
-// ---------- editor ----------
+// ---------- inbox (owner-only review of public submissions) ----------
+async function loadInbox() {
+  const list = document.getElementById('inbox-list');
+  if (!list) return;
+
+  list.innerHTML = '<p class="inbox-empty">Checking the box&hellip;</p>';
+  const subs = await getSubmissions();
+
+  if (subs.length === 0) {
+    list.innerHTML = '<p class="inbox-empty">Nothing waiting right now.</p>';
+    return;
+  }
+
+  list.innerHTML = '';
+  subs.forEach(sub => {
+    const item = document.createElement('div');
+    item.className = 'inbox-item';
+    const authorLine = sub.authorName
+      ? `<p class="post-author">from ${escapeHtml(sub.authorName)}</p>`
+      : `<p class="post-author">from Anonymous</p>`;
+    item.innerHTML = `
+      <p class="post-meta">Sent in ${formatDate(sub.submittedAt)}</p>
+      <h3>${escapeHtml(sub.title)}</h3>
+      ${authorLine}
+      <div class="inbox-body">${sub.content}</div>
+      <div style="display:flex; gap:12px;">
+        <button class="btn btn-primary" data-action="publish" data-id="${sub.id}">Publish to the drawer</button>
+        <button class="btn btn-outline-danger" data-action="discard" data-id="${sub.id}">Discard</button>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+
+  list.querySelectorAll('button[data-action="publish"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const sub = subs.find(s => s.id === btn.getAttribute('data-id'));
+      if (!sub) return;
+      const post = {
+        title: sub.title,
+        content: sub.content,
+        author: sub.authorName ? sub.authorName : 'Anonymous',
+        description: '',
+        excerpt: excerptFromHtml(sub.content),
+        createdAt: new Date().toISOString()
+      };
+      await addPost(post);
+      await deleteSubmission(sub.id);
+      loadInbox();
+    });
+  });
+
+  list.querySelectorAll('button[data-action="discard"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (confirm('Discard this submission for good?')) {
+        await deleteSubmission(btn.getAttribute('data-id'));
+        loadInbox();
+      }
+    });
+  });
+}
+
+// ---------- editor (shared by write.html and submit.html) ----------
 const PROMPTS = [
   "What tangent did this send you down?",
   "Would you have believed this fact a week ago?",
-  "Who would you tell about this, and why them?",
+  "Who would you tell about this, and why them?"
 ];
 
 const ENCOURAGEMENTS = [
@@ -178,22 +312,48 @@ const ENCOURAGEMENTS = [
   "keep going, you're onto something.",
   "this is shaping up.",
   "good, don't stop to fix it yet.",
-  "the tangent is allowed. lean into it.",
+  "the tangent is allowed. lean into it."
 ];
 
-function initEditor() {
+async function initEditor() {
   const editor = document.getElementById('editor');
   if (!editor || editor.dataset.initialized) return;
   editor.dataset.initialized = 'true';
 
   const titleInput = document.getElementById('title-input');
+  const authorInput = document.getElementById('author-input');
+  const descriptionInput = document.getElementById('description-input');
   const promptLine = document.getElementById('prompt-line');
   const wordCount = document.getElementById('word-count');
   const encourage = document.getElementById('encourage');
   const stamp = document.getElementById('stamp');
   const publishBtn = document.getElementById('publish-btn');
+  const submitBtn = document.getElementById('submit-btn');
+  const actionBtn = publishBtn || submitBtn;
+  const isSubmissionPage = !!submitBtn;
 
-  promptLine.textContent = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+  if (promptLine && !promptLine.textContent.includes('hidden box')) {
+    promptLine.textContent = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+  }
+
+  // ---- edit mode: if a post id is in the URL, load it for editing ----
+  let editingPostId = null;
+  if (!isSubmissionPage) {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (id) {
+      const existing = await getPostById(id);
+      if (existing) {
+        editingPostId = id;
+        titleInput.value = existing.title || '';
+        if (authorInput) authorInput.value = existing.author || '';
+        if (descriptionInput) descriptionInput.value = existing.description || '';
+        editor.innerHTML = existing.content || '';
+        if (actionBtn) actionBtn.textContent = 'Save changes';
+        if (stamp) { stamp.textContent = 'Filed'; stamp.classList.add('filed'); }
+      }
+    }
+  }
 
   let lastMilestone = 0;
 
@@ -224,7 +384,7 @@ function initEditor() {
     });
   });
 
-  publishBtn.addEventListener('click', async () => {
+  actionBtn.addEventListener('click', async () => {
     const title = titleInput.value.trim();
     const content = editor.innerHTML.trim();
     const plainText = editor.textContent.trim();
@@ -239,34 +399,73 @@ function initEditor() {
       return;
     }
 
-    publishBtn.disabled = true;
-    publishBtn.textContent = 'Filing...';
+    actionBtn.disabled = true;
 
-    const post = {
+    if (isSubmissionPage) {
+      actionBtn.textContent = 'Sending...';
+      const sub = {
+        title,
+        authorName: authorInput ? authorInput.value.trim() : '',
+        content,
+        submittedAt: new Date().toISOString()
+      };
+      try {
+        await addSubmission(sub);
+        if (stamp) { stamp.textContent = 'Sent'; stamp.classList.add('filed'); }
+        titleInput.value = '';
+        if (authorInput) authorInput.value = '';
+        editor.innerHTML = '';
+        updateWordCount();
+        actionBtn.textContent = 'Sent — send another?';
+        actionBtn.disabled = false;
+      } catch (e) {
+        console.error('Could not submit', e);
+        actionBtn.disabled = false;
+        actionBtn.textContent = 'Send it in';
+        alert("Couldn't send this in -- check the Firebase setup.");
+      }
+      return;
+    }
+
+    actionBtn.textContent = editingPostId ? 'Saving...' : 'Filing...';
+
+    const postData = {
       title,
       content,
-      excerpt: excerptFromHtml(content),
-      createdAt: new Date().toISOString()
+      author: authorInput ? authorInput.value.trim() : '',
+      description: descriptionInput ? descriptionInput.value.trim() : '',
+      excerpt: excerptFromHtml(content)
     };
 
     try {
-      const id = await addPost(post);
-      stamp.textContent = 'Filed';
-      stamp.classList.add('filed');
+      let id = editingPostId;
+      if (editingPostId) {
+        await updatePost(editingPostId, postData);
+      } else {
+        postData.createdAt = new Date().toISOString();
+        id = await addPost(postData);
+      }
+      if (stamp) { stamp.textContent = editingPostId ? 'Updated' : 'Filed'; stamp.classList.add('filed'); }
       setTimeout(() => {
         window.location.href = `post.html?id=${id}`;
       }, 550);
     } catch (e) {
-      console.error('Could not publish', e);
-      publishBtn.disabled = false;
-      publishBtn.textContent = 'File this entry';
-      alert("Couldn't file this entry. Check your Firebase setup in firebase-config.js.");
+      console.error('Could not save', e);
+      actionBtn.disabled = false;
+      actionBtn.textContent = editingPostId ? 'Save changes' : 'File this entry';
+      alert("Couldn't save this entry -- check your Firebase setup in firebase-config.js.");
     }
   });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  applyOwnerUI();
   renderDrawer();
   renderPostView();
   initWriteGate();
+
+  // submit.html has no gate, so the editor initializes right away
+  if (document.getElementById('submit-btn')) {
+    initEditor();
+  }
 });

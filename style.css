@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Bitter:wght@500;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&display=swap');
-
 :root {
   --ink: #1f3327;
   --ink-deep: #162419;
@@ -63,8 +61,17 @@ h1.site-title {
   color: rgba(243, 238, 226, 0.65);
   font-style: italic;
   font-size: 17px;
-  margin: 0 0 28px;
+  margin: 0 0 10px;
   max-width: 60ch;
+}
+
+.mini-note {
+  color: rgba(243, 238, 226, 0.45);
+  font-size: 13px;
+  font-family: 'Space Mono', monospace;
+  max-width: 58ch;
+  line-height: 1.6;
+  margin: 0 0 28px;
 }
 
 nav.top-nav {
@@ -178,6 +185,13 @@ nav.top-nav a.active {
   color: var(--text-soft);
 }
 
+.card .card-author {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--rust);
+  margin: 0 0 4px;
+}
+
 /* ---------- empty state ---------- */
 
 .empty-state {
@@ -230,6 +244,48 @@ nav.top-nav a.active {
 }
 
 .btn-ghost:hover { border-color: var(--mustard); color: var(--mustard); }
+
+/* buttons that sit on the cream/paper cards, not the dark background */
+.btn-outline-ink {
+  background: transparent;
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+}
+
+.btn-outline-ink:hover { background: var(--ink); color: var(--paper); }
+
+.btn-outline-danger {
+  background: transparent;
+  border: 1.5px solid var(--rust);
+  color: var(--rust);
+}
+
+.btn-outline-danger:hover { background: var(--rust); color: var(--paper); }
+
+.field-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-soft);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.field-input {
+  width: 100%;
+  font-family: 'Source Serif 4', serif;
+  font-size: 15px;
+  padding: 9px 10px;
+  border: 1.5px solid var(--paper-dark);
+  border-radius: 3px;
+  background: #fff;
+  color: var(--text-dark);
+  margin-bottom: 18px;
+}
+
+.field-input:focus { outline: none; border-color: var(--mustard); }
+.field-input::placeholder { color: rgba(36,41,31,0.35); }
 
 /* ---------- write page ---------- */
 
@@ -435,6 +491,13 @@ nav.top-nav a.active {
   letter-spacing: 0.06em;
 }
 
+.post-author {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  color: var(--text-soft);
+  margin: 8px 0 0;
+}
+
 .post-body {
   margin-top: 22px;
   font-size: 18px;
@@ -453,4 +516,34 @@ nav.top-nav a.active {
 @media (max-width: 600px) {
   .notebook, .post-view { padding: 24px 20px; }
   .notebook-top { flex-direction: column-reverse; }
+}
+
+/* ---------- inbox ---------- */
+
+.inbox-item {
+  background: var(--paper);
+  color: var(--text-dark);
+  border-radius: 3px;
+  padding: 26px 30px;
+  margin-bottom: 20px;
+  box-shadow: 0 12px 28px var(--shadow);
+}
+
+.inbox-item h3 {
+  font-family: 'Bitter', serif;
+  font-size: 22px;
+  margin: 6px 0 4px;
+}
+
+.inbox-item .post-author { margin: 0 0 14px; }
+
+.inbox-item .inbox-body {
+  font-size: 16px;
+  line-height: 1.65;
+  margin-bottom: 18px;
+}
+
+.inbox-empty {
+  color: rgba(243, 238, 226, 0.6);
+  font-style: italic;
 }
